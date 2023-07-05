@@ -31,6 +31,7 @@ them.
 
 static integer c__1 = 1;
 static doublereal c_b32 = 0.;
+static quaddoublereal c_b64 = 0.;
 static real c_b66 = 0.f;
 
 doublereal dlamch_(char *cmach)
@@ -2066,3 +2067,40 @@ L10:
 
 } /* slamc5_ */
 
+quaddoublereal qlamc3_(quaddoublereal* a, quaddoublereal* b)
+{
+    /* System generated locals */
+    quaddoublereal ret_val;
+
+
+    /*
+        -- LAPACK auxiliary routine (version 3.2) --
+           Univ. of Tennessee, Univ. of California Berkeley and NAG Ltd..
+           November 2006
+
+
+        Purpose
+        =======
+
+        DLAMC3  is intended to force  A  and  B  to be stored prior to doing
+        the addition of  A  and  B ,  for use in situations where optimizers
+        might hold one of these in a register.
+
+        Arguments
+        =========
+
+        A       (input) DOUBLE PRECISION
+        B       (input) DOUBLE PRECISION
+                The values A and B.
+
+       =====================================================================
+    */
+
+
+    ret_val = *a + *b;
+
+    return ret_val;
+
+    /*     End of DLAMC3 */
+
+} /* qlamc3_ */

@@ -139,6 +139,7 @@
     <ClCompile Include="..\src\f2c_c_lapack.c" />
     <ClCompile Include="..\src\f2c_d_lapack.c" />
     <ClCompile Include="..\src\f2c_lapack.c" />
+    <ClCompile Include="..\src\f2c_q_lapack.c" />
     <ClCompile Include="..\src\f2c_s_lapack.c" />
     <ClCompile Include="..\src\f2c_z_lapack.c" />
     <ClCompile Include="..\src\python_xerbla.c" />

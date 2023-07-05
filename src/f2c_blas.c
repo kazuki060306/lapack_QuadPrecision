@@ -21601,3 +21601,1788 @@ L20:
 
 } /* ztrsv_ */
 
+/* Subroutine */ int qcopy_(integer* n, quaddoublereal* dx, integer* incx,
+	quaddoublereal* dy, integer* incy)
+{
+	/* System generated locals */
+	integer i__1;
+
+	/* Local variables */
+	static integer i__, m, ix, iy, mp1;
+
+
+	/*
+		Purpose
+		=======
+
+		   DCOPY copies a vector, x, to a vector, y.
+		   uses unrolled loops for increments equal to one.
+
+		Further Details
+		===============
+
+		   jack dongarra, linpack, 3/11/78.
+		   modified 12/3/93, array(1) declarations changed to array(*)
+
+		=====================================================================
+	*/
+
+	/* Parameter adjustments */
+	--dy;
+	--dx;
+
+	/* Function Body */
+	if (*n <= 0) {
+		return 0;
+	}
+	if (*incx == 1 && *incy == 1) {
+		goto L20;
+	}
+
+	/*
+			  code for unequal increments or equal increments
+				not equal to 1
+	*/
+
+	ix = 1;
+	iy = 1;
+	if (*incx < 0) {
+		ix = (-(*n) + 1) * *incx + 1;
+	}
+	if (*incy < 0) {
+		iy = (-(*n) + 1) * *incy + 1;
+	}
+	i__1 = *n;
+	for (i__ = 1; i__ <= i__1; ++i__) {
+		dy[iy] = dx[ix];
+		ix += *incx;
+		iy += *incy;
+		/* L10: */
+	}
+	return 0;
+
+	/*
+			  code for both increments equal to 1
+
+
+			  clean-up loop
+	*/
+
+L20:
+	m = *n % 7;
+	if (m == 0) {
+		goto L40;
+	}
+	i__1 = m;
+	for (i__ = 1; i__ <= i__1; ++i__) {
+		dy[i__] = dx[i__];
+		/* L30: */
+	}
+	if (*n < 7) {
+		return 0;
+	}
+L40:
+	mp1 = m + 1;
+	i__1 = *n;
+	for (i__ = mp1; i__ <= i__1; i__ += 7) {
+		dy[i__] = dx[i__];
+		dy[i__ + 1] = dx[i__ + 1];
+		dy[i__ + 2] = dx[i__ + 2];
+		dy[i__ + 3] = dx[i__ + 3];
+		dy[i__ + 4] = dx[i__ + 4];
+		dy[i__ + 5] = dx[i__ + 5];
+		dy[i__ + 6] = dx[i__ + 6];
+		/* L50: */
+	}
+	return 0;
+} /* qcopy_ */
+
+/* Subroutine */ int qgemm_(char* transa, char* transb, integer* m, integer*
+	n, integer* k, quaddoublereal* alpha, quaddoublereal* a, integer* lda,
+	quaddoublereal* b, integer* ldb, quaddoublereal* beta, quaddoublereal* c__,
+	integer* ldc)
+{
+	/* System generated locals */
+	integer a_dim1, a_offset, b_dim1, b_offset, c_dim1, c_offset, i__1, i__2,
+		i__3;
+
+	/* Local variables */
+	static integer i__, j, l, info;
+	static logical nota, notb;
+	static quaddoublereal temp;
+	extern logical lsame_(char*, char*);
+	static integer nrowa, nrowb;
+	extern /* Subroutine */ int xerbla_(char*, integer*);
+
+
+	/*
+		Purpose
+		=======
+
+		DGEMM  performs one of the matrix-matrix operations
+
+		   C := alpha*op( A )*op( B ) + beta*C,
+
+		where  op( X ) is one of
+
+		   op( X ) = X   or   op( X ) = X',
+
+		alpha and beta are scalars, and A, B and C are matrices, with op( A )
+		an m by k matrix,  op( B )  a  k by n matrix and  C an m by n matrix.
+
+		Arguments
+		==========
+
+		TRANSA - CHARACTER*1.
+				 On entry, TRANSA specifies the form of op( A ) to be used in
+				 the matrix multiplication as follows:
+
+					TRANSA = 'N' or 'n',  op( A ) = A.
+
+					TRANSA = 'T' or 't',  op( A ) = A'.
+
+					TRANSA = 'C' or 'c',  op( A ) = A'.
+
+				 Unchanged on exit.
+
+		TRANSB - CHARACTER*1.
+				 On entry, TRANSB specifies the form of op( B ) to be used in
+				 the matrix multiplication as follows:
+
+					TRANSB = 'N' or 'n',  op( B ) = B.
+
+					TRANSB = 'T' or 't',  op( B ) = B'.
+
+					TRANSB = 'C' or 'c',  op( B ) = B'.
+
+				 Unchanged on exit.
+
+		M      - INTEGER.
+				 On entry,  M  specifies  the number  of rows  of the  matrix
+				 op( A )  and of the  matrix  C.  M  must  be at least  zero.
+				 Unchanged on exit.
+
+		N      - INTEGER.
+				 On entry,  N  specifies the number  of columns of the matrix
+				 op( B ) and the number of columns of the matrix C. N must be
+				 at least zero.
+				 Unchanged on exit.
+
+		K      - INTEGER.
+				 On entry,  K  specifies  the number of columns of the matrix
+				 op( A ) and the number of rows of the matrix op( B ). K must
+				 be at least  zero.
+				 Unchanged on exit.
+
+		ALPHA  - DOUBLE PRECISION.
+				 On entry, ALPHA specifies the scalar alpha.
+				 Unchanged on exit.
+
+		A      - DOUBLE PRECISION array of DIMENSION ( LDA, ka ), where ka is
+				 k  when  TRANSA = 'N' or 'n',  and is  m  otherwise.
+				 Before entry with  TRANSA = 'N' or 'n',  the leading  m by k
+				 part of the array  A  must contain the matrix  A,  otherwise
+				 the leading  k by m  part of the array  A  must contain  the
+				 matrix A.
+				 Unchanged on exit.
+
+		LDA    - INTEGER.
+				 On entry, LDA specifies the first dimension of A as declared
+				 in the calling (sub) program. When  TRANSA = 'N' or 'n' then
+				 LDA must be at least  max( 1, m ), otherwise  LDA must be at
+				 least  max( 1, k ).
+				 Unchanged on exit.
+
+		B      - DOUBLE PRECISION array of DIMENSION ( LDB, kb ), where kb is
+				 n  when  TRANSB = 'N' or 'n',  and is  k  otherwise.
+				 Before entry with  TRANSB = 'N' or 'n',  the leading  k by n
+				 part of the array  B  must contain the matrix  B,  otherwise
+				 the leading  n by k  part of the array  B  must contain  the
+				 matrix B.
+				 Unchanged on exit.
+
+		LDB    - INTEGER.
+				 On entry, LDB specifies the first dimension of B as declared
+				 in the calling (sub) program. When  TRANSB = 'N' or 'n' then
+				 LDB must be at least  max( 1, k ), otherwise  LDB must be at
+				 least  max( 1, n ).
+				 Unchanged on exit.
+
+		BETA   - DOUBLE PRECISION.
+				 On entry,  BETA  specifies the scalar  beta.  When  BETA  is
+				 supplied as zero then C need not be set on input.
+				 Unchanged on exit.
+
+		C      - DOUBLE PRECISION array of DIMENSION ( LDC, n ).
+				 Before entry, the leading  m by n  part of the array  C must
+				 contain the matrix  C,  except when  beta  is zero, in which
+				 case C need not be set on entry.
+				 On exit, the array  C  is overwritten by the  m by n  matrix
+				 ( alpha*op( A )*op( B ) + beta*C ).
+
+		LDC    - INTEGER.
+				 On entry, LDC specifies the first dimension of C as declared
+				 in  the  calling  (sub)  program.   LDC  must  be  at  least
+				 max( 1, m ).
+				 Unchanged on exit.
+
+		Further Details
+		===============
+
+		Level 3 Blas routine.
+
+		-- Written on 8-February-1989.
+		   Jack Dongarra, Argonne National Laboratory.
+		   Iain Duff, AERE Harwell.
+		   Jeremy Du Croz, Numerical Algorithms Group Ltd.
+		   Sven Hammarling, Numerical Algorithms Group Ltd.
+
+		=====================================================================
+
+
+		   Set  NOTA  and  NOTB  as  true if  A  and  B  respectively are not
+		   transposed and set  NROWA and  NROWB  as the number of rows
+		   and  columns of  A  and the  number of  rows  of  B  respectively.
+	*/
+
+	/* Parameter adjustments */
+	a_dim1 = *lda;
+	a_offset = 1 + a_dim1;
+	a -= a_offset;
+	b_dim1 = *ldb;
+	b_offset = 1 + b_dim1;
+	b -= b_offset;
+	c_dim1 = *ldc;
+	c_offset = 1 + c_dim1;
+	c__ -= c_offset;
+
+	/* Function Body */
+	nota = lsame_(transa, "N");
+	notb = lsame_(transb, "N");
+	if (nota) {
+		nrowa = *m;
+	}
+	else {
+		nrowa = *k;
+	}
+	if (notb) {
+		nrowb = *k;
+	}
+	else {
+		nrowb = *n;
+	}
+
+	/*     Test the input parameters. */
+
+	info = 0;
+	if (!nota && !lsame_(transa, "C") && !lsame_(
+		transa, "T")) {
+		info = 1;
+	}
+	else if (!notb && !lsame_(transb, "C") && !
+		lsame_(transb, "T")) {
+		info = 2;
+	}
+	else if (*m < 0) {
+		info = 3;
+	}
+	else if (*n < 0) {
+		info = 4;
+	}
+	else if (*k < 0) {
+		info = 5;
+	}
+	else if (*lda < max(1, nrowa)) {
+		info = 8;
+	}
+	else if (*ldb < max(1, nrowb)) {
+		info = 10;
+	}
+	else if (*ldc < max(1, *m)) {
+		info = 13;
+	}
+	if (info != 0) {
+		xerbla_("DGEMM ", &info);
+		return 0;
+	}
+
+	/*     Quick return if possible. */
+
+	if (*m == 0 || *n == 0 || (*alpha == 0. || *k == 0) && *beta == 1.) {
+		return 0;
+	}
+
+	/*     And if  alpha.eq.zero. */
+
+	if (*alpha == 0.) {
+		if (*beta == 0.) {
+			i__1 = *n;
+			for (j = 1; j <= i__1; ++j) {
+				i__2 = *m;
+				for (i__ = 1; i__ <= i__2; ++i__) {
+					c__[i__ + j * c_dim1] = 0.;
+					/* L10: */
+				}
+				/* L20: */
+			}
+		}
+		else {
+			i__1 = *n;
+			for (j = 1; j <= i__1; ++j) {
+				i__2 = *m;
+				for (i__ = 1; i__ <= i__2; ++i__) {
+					c__[i__ + j * c_dim1] = *beta * c__[i__ + j * c_dim1];
+					/* L30: */
+				}
+				/* L40: */
+			}
+		}
+		return 0;
+	}
+
+	/*     Start the operations. */
+
+	if (notb) {
+		if (nota) {
+
+			/*           Form  C := alpha*A*B + beta*C. */
+
+			i__1 = *n;
+			for (j = 1; j <= i__1; ++j) {
+				if (*beta == 0.) {
+					i__2 = *m;
+					for (i__ = 1; i__ <= i__2; ++i__) {
+						c__[i__ + j * c_dim1] = 0.;
+						/* L50: */
+					}
+				}
+				else if (*beta != 1.) {
+					i__2 = *m;
+					for (i__ = 1; i__ <= i__2; ++i__) {
+						c__[i__ + j * c_dim1] = *beta * c__[i__ + j * c_dim1];
+						/* L60: */
+					}
+				}
+				i__2 = *k;
+				for (l = 1; l <= i__2; ++l) {
+					if (b[l + j * b_dim1] != 0.) {
+						temp = *alpha * b[l + j * b_dim1];
+						i__3 = *m;
+						for (i__ = 1; i__ <= i__3; ++i__) {
+							c__[i__ + j * c_dim1] += temp * a[i__ + l *
+								a_dim1];
+							/* L70: */
+						}
+					}
+					/* L80: */
+				}
+				/* L90: */
+			}
+		}
+		else {
+
+			/*           Form  C := alpha*A'*B + beta*C */
+
+			i__1 = *n;
+			for (j = 1; j <= i__1; ++j) {
+				i__2 = *m;
+				for (i__ = 1; i__ <= i__2; ++i__) {
+					temp = 0.;
+					i__3 = *k;
+					for (l = 1; l <= i__3; ++l) {
+						temp += a[l + i__ * a_dim1] * b[l + j * b_dim1];
+						/* L100: */
+					}
+					if (*beta == 0.) {
+						c__[i__ + j * c_dim1] = *alpha * temp;
+					}
+					else {
+						c__[i__ + j * c_dim1] = *alpha * temp + *beta * c__[
+							i__ + j * c_dim1];
+					}
+					/* L110: */
+				}
+				/* L120: */
+			}
+		}
+	}
+	else {
+		if (nota) {
+
+			/*           Form  C := alpha*A*B' + beta*C */
+
+			i__1 = *n;
+			for (j = 1; j <= i__1; ++j) {
+				if (*beta == 0.) {
+					i__2 = *m;
+					for (i__ = 1; i__ <= i__2; ++i__) {
+						c__[i__ + j * c_dim1] = 0.;
+						/* L130: */
+					}
+				}
+				else if (*beta != 1.) {
+					i__2 = *m;
+					for (i__ = 1; i__ <= i__2; ++i__) {
+						c__[i__ + j * c_dim1] = *beta * c__[i__ + j * c_dim1];
+						/* L140: */
+					}
+				}
+				i__2 = *k;
+				for (l = 1; l <= i__2; ++l) {
+					if (b[j + l * b_dim1] != 0.) {
+						temp = *alpha * b[j + l * b_dim1];
+						i__3 = *m;
+						for (i__ = 1; i__ <= i__3; ++i__) {
+							c__[i__ + j * c_dim1] += temp * a[i__ + l *
+								a_dim1];
+							/* L150: */
+						}
+					}
+					/* L160: */
+				}
+				/* L170: */
+			}
+		}
+		else {
+
+			/*           Form  C := alpha*A'*B' + beta*C */
+
+			i__1 = *n;
+			for (j = 1; j <= i__1; ++j) {
+				i__2 = *m;
+				for (i__ = 1; i__ <= i__2; ++i__) {
+					temp = 0.;
+					i__3 = *k;
+					for (l = 1; l <= i__3; ++l) {
+						temp += a[l + i__ * a_dim1] * b[j + l * b_dim1];
+						/* L180: */
+					}
+					if (*beta == 0.) {
+						c__[i__ + j * c_dim1] = *alpha * temp;
+					}
+					else {
+						c__[i__ + j * c_dim1] = *alpha * temp + *beta * c__[
+							i__ + j * c_dim1];
+					}
+					/* L190: */
+				}
+				/* L200: */
+			}
+		}
+	}
+
+	return 0;
+
+	/*     End of DGEMM . */
+
+} /* qgemm_ */
+
+/* Subroutine */ int qgemv_(char* trans, integer* m, integer* n, quaddoublereal*
+	alpha, quaddoublereal* a, integer* lda, quaddoublereal* x, integer* incx,
+	quaddoublereal* beta, quaddoublereal* y, integer* incy)
+{
+	/* System generated locals */
+	integer a_dim1, a_offset, i__1, i__2;
+
+	/* Local variables */
+	static integer i__, j, ix, iy, jx, jy, kx, ky, info;
+	static quaddoublereal temp;
+	static integer lenx, leny;
+	extern logical lsame_(char*, char*);
+	extern /* Subroutine */ int xerbla_(char*, integer*);
+
+
+	/*
+		Purpose
+		=======
+
+		DGEMV  performs one of the matrix-vector operations
+
+		   y := alpha*A*x + beta*y,   or   y := alpha*A'*x + beta*y,
+
+		where alpha and beta are scalars, x and y are vectors and A is an
+		m by n matrix.
+
+		Arguments
+		==========
+
+		TRANS  - CHARACTER*1.
+				 On entry, TRANS specifies the operation to be performed as
+				 follows:
+
+					TRANS = 'N' or 'n'   y := alpha*A*x + beta*y.
+
+					TRANS = 'T' or 't'   y := alpha*A'*x + beta*y.
+
+					TRANS = 'C' or 'c'   y := alpha*A'*x + beta*y.
+
+				 Unchanged on exit.
+
+		M      - INTEGER.
+				 On entry, M specifies the number of rows of the matrix A.
+				 M must be at least zero.
+				 Unchanged on exit.
+
+		N      - INTEGER.
+				 On entry, N specifies the number of columns of the matrix A.
+				 N must be at least zero.
+				 Unchanged on exit.
+
+		ALPHA  - DOUBLE PRECISION.
+				 On entry, ALPHA specifies the scalar alpha.
+				 Unchanged on exit.
+
+		A      - DOUBLE PRECISION array of DIMENSION ( LDA, n ).
+				 Before entry, the leading m by n part of the array A must
+				 contain the matrix of coefficients.
+				 Unchanged on exit.
+
+		LDA    - INTEGER.
+				 On entry, LDA specifies the first dimension of A as declared
+				 in the calling (sub) program. LDA must be at least
+				 max( 1, m ).
+				 Unchanged on exit.
+
+		X      - DOUBLE PRECISION array of DIMENSION at least
+				 ( 1 + ( n - 1 )*abs( INCX ) ) when TRANS = 'N' or 'n'
+				 and at least
+				 ( 1 + ( m - 1 )*abs( INCX ) ) otherwise.
+				 Before entry, the incremented array X must contain the
+				 vector x.
+				 Unchanged on exit.
+
+		INCX   - INTEGER.
+				 On entry, INCX specifies the increment for the elements of
+				 X. INCX must not be zero.
+				 Unchanged on exit.
+
+		BETA   - DOUBLE PRECISION.
+				 On entry, BETA specifies the scalar beta. When BETA is
+				 supplied as zero then Y need not be set on input.
+				 Unchanged on exit.
+
+		Y      - DOUBLE PRECISION array of DIMENSION at least
+				 ( 1 + ( m - 1 )*abs( INCY ) ) when TRANS = 'N' or 'n'
+				 and at least
+				 ( 1 + ( n - 1 )*abs( INCY ) ) otherwise.
+				 Before entry with BETA non-zero, the incremented array Y
+				 must contain the vector y. On exit, Y is overwritten by the
+				 updated vector y.
+
+		INCY   - INTEGER.
+				 On entry, INCY specifies the increment for the elements of
+				 Y. INCY must not be zero.
+				 Unchanged on exit.
+
+		Further Details
+		===============
+
+		Level 2 Blas routine.
+
+		-- Written on 22-October-1986.
+		   Jack Dongarra, Argonne National Lab.
+		   Jeremy Du Croz, Nag Central Office.
+		   Sven Hammarling, Nag Central Office.
+		   Richard Hanson, Sandia National Labs.
+
+		=====================================================================
+
+
+		   Test the input parameters.
+	*/
+
+	/* Parameter adjustments */
+	a_dim1 = *lda;
+	a_offset = 1 + a_dim1;
+	a -= a_offset;
+	--x;
+	--y;
+
+	/* Function Body */
+	info = 0;
+	if (!lsame_(trans, "N") && !lsame_(trans, "T") && !lsame_(trans, "C")
+		) {
+		info = 1;
+	}
+	else if (*m < 0) {
+		info = 2;
+	}
+	else if (*n < 0) {
+		info = 3;
+	}
+	else if (*lda < max(1, *m)) {
+		info = 6;
+	}
+	else if (*incx == 0) {
+		info = 8;
+	}
+	else if (*incy == 0) {
+		info = 11;
+	}
+	if (info != 0) {
+		xerbla_("DGEMV ", &info);
+		return 0;
+	}
+
+	/*     Quick return if possible. */
+
+	if (*m == 0 || *n == 0 || *alpha == 0. && *beta == 1.) {
+		return 0;
+	}
+
+	/*
+		   Set  LENX  and  LENY, the lengths of the vectors x and y, and set
+		   up the start points in  X  and  Y.
+	*/
+
+	if (lsame_(trans, "N")) {
+		lenx = *n;
+		leny = *m;
+	}
+	else {
+		lenx = *m;
+		leny = *n;
+	}
+	if (*incx > 0) {
+		kx = 1;
+	}
+	else {
+		kx = 1 - (lenx - 1) * *incx;
+	}
+	if (*incy > 0) {
+		ky = 1;
+	}
+	else {
+		ky = 1 - (leny - 1) * *incy;
+	}
+
+	/*
+		   Start the operations. In this version the elements of A are
+		   accessed sequentially with one pass through A.
+
+		   First form  y := beta*y.
+	*/
+
+	if (*beta != 1.) {
+		if (*incy == 1) {
+			if (*beta == 0.) {
+				i__1 = leny;
+				for (i__ = 1; i__ <= i__1; ++i__) {
+					y[i__] = 0.;
+					/* L10: */
+				}
+			}
+			else {
+				i__1 = leny;
+				for (i__ = 1; i__ <= i__1; ++i__) {
+					y[i__] = *beta * y[i__];
+					/* L20: */
+				}
+			}
+		}
+		else {
+			iy = ky;
+			if (*beta == 0.) {
+				i__1 = leny;
+				for (i__ = 1; i__ <= i__1; ++i__) {
+					y[iy] = 0.;
+					iy += *incy;
+					/* L30: */
+				}
+			}
+			else {
+				i__1 = leny;
+				for (i__ = 1; i__ <= i__1; ++i__) {
+					y[iy] = *beta * y[iy];
+					iy += *incy;
+					/* L40: */
+				}
+			}
+		}
+	}
+	if (*alpha == 0.) {
+		return 0;
+	}
+	if (lsame_(trans, "N")) {
+
+		/*        Form  y := alpha*A*x + y. */
+
+		jx = kx;
+		if (*incy == 1) {
+			i__1 = *n;
+			for (j = 1; j <= i__1; ++j) {
+				if (x[jx] != 0.) {
+					temp = *alpha * x[jx];
+					i__2 = *m;
+					for (i__ = 1; i__ <= i__2; ++i__) {
+						y[i__] += temp * a[i__ + j * a_dim1];
+						/* L50: */
+					}
+				}
+				jx += *incx;
+				/* L60: */
+			}
+		}
+		else {
+			i__1 = *n;
+			for (j = 1; j <= i__1; ++j) {
+				if (x[jx] != 0.) {
+					temp = *alpha * x[jx];
+					iy = ky;
+					i__2 = *m;
+					for (i__ = 1; i__ <= i__2; ++i__) {
+						y[iy] += temp * a[i__ + j * a_dim1];
+						iy += *incy;
+						/* L70: */
+					}
+				}
+				jx += *incx;
+				/* L80: */
+			}
+		}
+	}
+	else {
+
+		/*        Form  y := alpha*A'*x + y. */
+
+		jy = ky;
+		if (*incx == 1) {
+			i__1 = *n;
+			for (j = 1; j <= i__1; ++j) {
+				temp = 0.;
+				i__2 = *m;
+				for (i__ = 1; i__ <= i__2; ++i__) {
+					temp += a[i__ + j * a_dim1] * x[i__];
+					/* L90: */
+				}
+				y[jy] += *alpha * temp;
+				jy += *incy;
+				/* L100: */
+			}
+		}
+		else {
+			i__1 = *n;
+			for (j = 1; j <= i__1; ++j) {
+				temp = 0.;
+				ix = kx;
+				i__2 = *m;
+				for (i__ = 1; i__ <= i__2; ++i__) {
+					temp += a[i__ + j * a_dim1] * x[ix];
+					ix += *incx;
+					/* L110: */
+				}
+				y[jy] += *alpha * temp;
+				jy += *incy;
+				/* L120: */
+			}
+		}
+	}
+
+	return 0;
+
+	/*     End of DGEMV . */
+
+} /* qgemv_ */
+
+/* Subroutine */ int qger_(integer* m, integer* n, quaddoublereal* alpha,
+	quaddoublereal* x, integer* incx, quaddoublereal* y, integer* incy,
+	quaddoublereal* a, integer* lda)
+{
+	/* System generated locals */
+	integer a_dim1, a_offset, i__1, i__2;
+
+	/* Local variables */
+	static integer i__, j, ix, jy, kx, info;
+	static quaddoublereal temp;
+	extern /* Subroutine */ int xerbla_(char*, integer*);
+
+
+	/*
+		Purpose
+		=======
+
+		DGER   performs the rank 1 operation
+
+		   A := alpha*x*y' + A,
+
+		where alpha is a scalar, x is an m element vector, y is an n element
+		vector and A is an m by n matrix.
+
+		Arguments
+		==========
+
+		M      - INTEGER.
+				 On entry, M specifies the number of rows of the matrix A.
+				 M must be at least zero.
+				 Unchanged on exit.
+
+		N      - INTEGER.
+				 On entry, N specifies the number of columns of the matrix A.
+				 N must be at least zero.
+				 Unchanged on exit.
+
+		ALPHA  - DOUBLE PRECISION.
+				 On entry, ALPHA specifies the scalar alpha.
+				 Unchanged on exit.
+
+		X      - DOUBLE PRECISION array of dimension at least
+				 ( 1 + ( m - 1 )*abs( INCX ) ).
+				 Before entry, the incremented array X must contain the m
+				 element vector x.
+				 Unchanged on exit.
+
+		INCX   - INTEGER.
+				 On entry, INCX specifies the increment for the elements of
+				 X. INCX must not be zero.
+				 Unchanged on exit.
+
+		Y      - DOUBLE PRECISION array of dimension at least
+				 ( 1 + ( n - 1 )*abs( INCY ) ).
+				 Before entry, the incremented array Y must contain the n
+				 element vector y.
+				 Unchanged on exit.
+
+		INCY   - INTEGER.
+				 On entry, INCY specifies the increment for the elements of
+				 Y. INCY must not be zero.
+				 Unchanged on exit.
+
+		A      - DOUBLE PRECISION array of DIMENSION ( LDA, n ).
+				 Before entry, the leading m by n part of the array A must
+				 contain the matrix of coefficients. On exit, A is
+				 overwritten by the updated matrix.
+
+		LDA    - INTEGER.
+				 On entry, LDA specifies the first dimension of A as declared
+				 in the calling (sub) program. LDA must be at least
+				 max( 1, m ).
+				 Unchanged on exit.
+
+		Further Details
+		===============
+
+		Level 2 Blas routine.
+
+		-- Written on 22-October-1986.
+		   Jack Dongarra, Argonne National Lab.
+		   Jeremy Du Croz, Nag Central Office.
+		   Sven Hammarling, Nag Central Office.
+		   Richard Hanson, Sandia National Labs.
+
+		=====================================================================
+
+
+		   Test the input parameters.
+	*/
+
+	/* Parameter adjustments */
+	--x;
+	--y;
+	a_dim1 = *lda;
+	a_offset = 1 + a_dim1;
+	a -= a_offset;
+
+	/* Function Body */
+	info = 0;
+	if (*m < 0) {
+		info = 1;
+	}
+	else if (*n < 0) {
+		info = 2;
+	}
+	else if (*incx == 0) {
+		info = 5;
+	}
+	else if (*incy == 0) {
+		info = 7;
+	}
+	else if (*lda < max(1, *m)) {
+		info = 9;
+	}
+	if (info != 0) {
+		xerbla_("DGER  ", &info);
+		return 0;
+	}
+
+	/*     Quick return if possible. */
+
+	if (*m == 0 || *n == 0 || *alpha == 0.) {
+		return 0;
+	}
+
+	/*
+		   Start the operations. In this version the elements of A are
+		   accessed sequentially with one pass through A.
+	*/
+
+	if (*incy > 0) {
+		jy = 1;
+	}
+	else {
+		jy = 1 - (*n - 1) * *incy;
+	}
+	if (*incx == 1) {
+		i__1 = *n;
+		for (j = 1; j <= i__1; ++j) {
+			if (y[jy] != 0.) {
+				temp = *alpha * y[jy];
+				i__2 = *m;
+				for (i__ = 1; i__ <= i__2; ++i__) {
+					a[i__ + j * a_dim1] += x[i__] * temp;
+					/* L10: */
+				}
+			}
+			jy += *incy;
+			/* L20: */
+		}
+	}
+	else {
+		if (*incx > 0) {
+			kx = 1;
+		}
+		else {
+			kx = 1 - (*m - 1) * *incx;
+		}
+		i__1 = *n;
+		for (j = 1; j <= i__1; ++j) {
+			if (y[jy] != 0.) {
+				temp = *alpha * y[jy];
+				ix = kx;
+				i__2 = *m;
+				for (i__ = 1; i__ <= i__2; ++i__) {
+					a[i__ + j * a_dim1] += x[ix] * temp;
+					ix += *incx;
+					/* L30: */
+				}
+			}
+			jy += *incy;
+			/* L40: */
+		}
+	}
+
+	return 0;
+
+	/*     End of DGER  . */
+
+} /* qger_ */
+
+quaddoublereal qnrm2_(integer* n, quaddoublereal* x, integer* incx)
+{
+	/* System generated locals */
+	integer i__1, i__2;
+	quaddoublereal ret_val, d__1;
+
+	/* Local variables */
+	static integer ix;
+	static quaddoublereal ssq, norm, scale, absxi;
+
+
+	/*
+		Purpose
+		=======
+
+		DNRM2 returns the euclidean norm of a vector via the function
+		name, so that
+
+		   DNRM2 := sqrt( x'*x )
+
+		Further Details
+		===============
+
+		-- This version written on 25-October-1982.
+		   Modified on 14-October-1993 to inline the call to DLASSQ.
+		   Sven Hammarling, Nag Ltd.
+
+		=====================================================================
+	*/
+
+	/* Parameter adjustments */
+	--x;
+
+	/* Function Body */
+	if (*n < 1 || *incx < 1) {
+		norm = 0.;
+	}
+	else if (*n == 1) {
+		norm = abs(x[1]);
+	}
+	else {
+		scale = 0.;
+		ssq = 1.;
+		/*
+				  The following loop is equivalent to this call to the LAPACK
+				  auxiliary routine:
+				  CALL DLASSQ( N, X, INCX, SCALE, SSQ )
+		*/
+
+		i__1 = (*n - 1) * *incx + 1;
+		i__2 = *incx;
+		for (ix = 1; i__2 < 0 ? ix >= i__1 : ix <= i__1; ix += i__2) {
+			if (x[ix] != 0.) {
+				absxi = (d__1 = x[ix], abs(d__1));
+				if (scale < absxi) {
+					/* Computing 2nd power */
+					d__1 = scale / absxi;
+					ssq = ssq * (d__1 * d__1) + 1.;
+					scale = absxi;
+				}
+				else {
+					/* Computing 2nd power */
+					d__1 = absxi / scale;
+					ssq += d__1 * d__1;
+				}
+			}
+			/* L10: */
+		}
+		norm = scale * sqrt(ssq);
+	}
+
+	ret_val = norm;
+	return ret_val;
+
+	/*     End of DNRM2. */
+
+} /* qnrm2_ */
+
+/* Subroutine */ int qrot_(integer* n, quaddoublereal* dx, integer* incx,
+	quaddoublereal* dy, integer* incy, quaddoublereal* c__, quaddoublereal* s)
+{
+	/* System generated locals */
+	integer i__1;
+
+	/* Local variables */
+	static integer i__, ix, iy;
+	static quaddoublereal qtemp;
+
+
+	/*
+		Purpose
+		=======
+
+		   DROT applies a plane rotation.
+
+		Further Details
+		===============
+
+		   jack dongarra, linpack, 3/11/78.
+		   modified 12/3/93, array(1) declarations changed to array(*)
+
+		=====================================================================
+	*/
+
+	/* Parameter adjustments */
+	--dy;
+	--dx;
+
+	/* Function Body */
+	if (*n <= 0) {
+		return 0;
+	}
+	if (*incx == 1 && *incy == 1) {
+		goto L20;
+	}
+
+	/*
+			 code for unequal increments or equal increments not equal
+			   to 1
+	*/
+
+	ix = 1;
+	iy = 1;
+	if (*incx < 0) {
+		ix = (-(*n) + 1) * *incx + 1;
+	}
+	if (*incy < 0) {
+		iy = (-(*n) + 1) * *incy + 1;
+	}
+	i__1 = *n;
+	for (i__ = 1; i__ <= i__1; ++i__) {
+		qtemp = *c__ * dx[ix] + *s * dy[iy];
+		dy[iy] = *c__ * dy[iy] - *s * dx[ix];
+		dx[ix] = qtemp;
+		ix += *incx;
+		iy += *incy;
+		/* L10: */
+	}
+	return 0;
+
+	/*       code for both increments equal to 1 */
+
+L20:
+	i__1 = *n;
+	for (i__ = 1; i__ <= i__1; ++i__) {
+		qtemp = *c__ * dx[i__] + *s * dy[i__];
+		dy[i__] = *c__ * dy[i__] - *s * dx[i__];
+		dx[i__] = qtemp;
+		/* L30: */
+	}
+	return 0;
+} /* qrot_ */
+
+/* Subroutine */ int qscal_(integer* n, quaddoublereal* da, quaddoublereal* dx,
+	integer* incx)
+{
+	/* System generated locals */
+	integer i__1, i__2;
+
+	/* Local variables */
+	static integer i__, m, mp1, nincx;
+
+
+	/*
+		Purpose
+		=======
+
+		   DSCAL scales a vector by a constant.
+		   uses unrolled loops for increment equal to one.
+
+		Further Details
+		===============
+
+		   jack dongarra, linpack, 3/11/78.
+		   modified 3/93 to return if incx .le. 0.
+		   modified 12/3/93, array(1) declarations changed to array(*)
+
+		=====================================================================
+	*/
+
+	/* Parameter adjustments */
+	--dx;
+
+	/* Function Body */
+	if (*n <= 0 || *incx <= 0) {
+		return 0;
+	}
+	if (*incx == 1) {
+		goto L20;
+	}
+
+	/*        code for increment not equal to 1 */
+
+	nincx = *n * *incx;
+	i__1 = nincx;
+	i__2 = *incx;
+	for (i__ = 1; i__2 < 0 ? i__ >= i__1 : i__ <= i__1; i__ += i__2) {
+		dx[i__] = *da * dx[i__];
+		/* L10: */
+	}
+	return 0;
+
+	/*
+			  code for increment equal to 1
+
+
+			  clean-up loop
+	*/
+
+L20:
+	m = *n % 5;
+	if (m == 0) {
+		goto L40;
+	}
+	i__2 = m;
+	for (i__ = 1; i__ <= i__2; ++i__) {
+		dx[i__] = *da * dx[i__];
+		/* L30: */
+	}
+	if (*n < 5) {
+		return 0;
+	}
+L40:
+	mp1 = m + 1;
+	i__2 = *n;
+	for (i__ = mp1; i__ <= i__2; i__ += 5) {
+		dx[i__] = *da * dx[i__];
+		dx[i__ + 1] = *da * dx[i__ + 1];
+		dx[i__ + 2] = *da * dx[i__ + 2];
+		dx[i__ + 3] = *da * dx[i__ + 3];
+		dx[i__ + 4] = *da * dx[i__ + 4];
+		/* L50: */
+	}
+	return 0;
+} /* qscal_ */
+
+/* Subroutine */ int qswap_(integer* n, quaddoublereal* dx, integer* incx,
+	quaddoublereal* dy, integer* incy)
+{
+	/* System generated locals */
+	integer i__1;
+
+	/* Local variables */
+	static integer i__, m, ix, iy, mp1;
+	static quaddoublereal qtemp;
+
+
+	/*
+		Purpose
+		=======
+
+		   interchanges two vectors.
+		   uses unrolled loops for increments equal one.
+
+		Further Details
+		===============
+
+		   jack dongarra, linpack, 3/11/78.
+		   modified 12/3/93, array(1) declarations changed to array(*)
+
+		=====================================================================
+	*/
+
+	/* Parameter adjustments */
+	--dy;
+	--dx;
+
+	/* Function Body */
+	if (*n <= 0) {
+		return 0;
+	}
+	if (*incx == 1 && *incy == 1) {
+		goto L20;
+	}
+
+	/*
+			 code for unequal increments or equal increments not equal
+			   to 1
+	*/
+
+	ix = 1;
+	iy = 1;
+	if (*incx < 0) {
+		ix = (-(*n) + 1) * *incx + 1;
+	}
+	if (*incy < 0) {
+		iy = (-(*n) + 1) * *incy + 1;
+	}
+	i__1 = *n;
+	for (i__ = 1; i__ <= i__1; ++i__) {
+		qtemp = dx[ix];
+		dx[ix] = dy[iy];
+		dy[iy] = qtemp;
+		ix += *incx;
+		iy += *incy;
+		/* L10: */
+	}
+	return 0;
+
+	/*
+			 code for both increments equal to 1
+
+
+			 clean-up loop
+	*/
+
+L20:
+	m = *n % 3;
+	if (m == 0) {
+		goto L40;
+	}
+	i__1 = m;
+	for (i__ = 1; i__ <= i__1; ++i__) {
+		qtemp = dx[i__];
+		dx[i__] = dy[i__];
+		dy[i__] = qtemp;
+		/* L30: */
+	}
+	if (*n < 3) {
+		return 0;
+	}
+L40:
+	mp1 = m + 1;
+	i__1 = *n;
+	for (i__ = mp1; i__ <= i__1; i__ += 3) {
+		qtemp = dx[i__];
+		dx[i__] = dy[i__];
+		dy[i__] = qtemp;
+		qtemp = dx[i__ + 1];
+		dx[i__ + 1] = dy[i__ + 1];
+		dy[i__ + 1] = qtemp;
+		qtemp = dx[i__ + 2];
+		dx[i__ + 2] = dy[i__ + 2];
+		dy[i__ + 2] = qtemp;
+		/* L50: */
+	}
+	return 0;
+} /* qswap_ */
+
+/* Subroutine */ int qtrsm_(char* side, char* uplo, char* transa, char* diag,
+	integer* m, integer* n, quaddoublereal* alpha, quaddoublereal* a, integer*
+	lda, quaddoublereal* b, integer* ldb)
+{
+	/* System generated locals */
+	integer a_dim1, a_offset, b_dim1, b_offset, i__1, i__2, i__3;
+
+	/* Local variables */
+	static integer i__, j, k, info;
+	static quaddoublereal temp;
+	static logical lside;
+	extern logical lsame_(char*, char*);
+	static integer nrowa;
+	static logical upper;
+	extern /* Subroutine */ int xerbla_(char*, integer*);
+	static logical nounit;
+
+
+	/*
+		Purpose
+		=======
+
+		DTRSM  solves one of the matrix equations
+
+		   op( A )*X = alpha*B,   or   X*op( A ) = alpha*B,
+
+		where alpha is a scalar, X and B are m by n matrices, A is a unit, or
+		non-unit,  upper or lower triangular matrix  and  op( A )  is one  of
+
+		   op( A ) = A   or   op( A ) = A'.
+
+		The matrix X is overwritten on B.
+
+		Arguments
+		==========
+
+		SIDE   - CHARACTER*1.
+				 On entry, SIDE specifies whether op( A ) appears on the left
+				 or right of X as follows:
+
+					SIDE = 'L' or 'l'   op( A )*X = alpha*B.
+
+					SIDE = 'R' or 'r'   X*op( A ) = alpha*B.
+
+				 Unchanged on exit.
+
+		UPLO   - CHARACTER*1.
+				 On entry, UPLO specifies whether the matrix A is an upper or
+				 lower triangular matrix as follows:
+
+					UPLO = 'U' or 'u'   A is an upper triangular matrix.
+
+					UPLO = 'L' or 'l'   A is a lower triangular matrix.
+
+				 Unchanged on exit.
+
+		TRANSA - CHARACTER*1.
+				 On entry, TRANSA specifies the form of op( A ) to be used in
+				 the matrix multiplication as follows:
+
+					TRANSA = 'N' or 'n'   op( A ) = A.
+
+					TRANSA = 'T' or 't'   op( A ) = A'.
+
+					TRANSA = 'C' or 'c'   op( A ) = A'.
+
+				 Unchanged on exit.
+
+		DIAG   - CHARACTER*1.
+				 On entry, DIAG specifies whether or not A is unit triangular
+				 as follows:
+
+					DIAG = 'U' or 'u'   A is assumed to be unit triangular.
+
+					DIAG = 'N' or 'n'   A is not assumed to be unit
+										triangular.
+
+				 Unchanged on exit.
+
+		M      - INTEGER.
+				 On entry, M specifies the number of rows of B. M must be at
+				 least zero.
+				 Unchanged on exit.
+
+		N      - INTEGER.
+				 On entry, N specifies the number of columns of B.  N must be
+				 at least zero.
+				 Unchanged on exit.
+
+		ALPHA  - DOUBLE PRECISION.
+				 On entry,  ALPHA specifies the scalar  alpha. When  alpha is
+				 zero then  A is not referenced and  B need not be set before
+				 entry.
+				 Unchanged on exit.
+
+		A      - DOUBLE PRECISION array of DIMENSION ( LDA, k ), where k is m
+				 when  SIDE = 'L' or 'l'  and is  n  when  SIDE = 'R' or 'r'.
+				 Before entry  with  UPLO = 'U' or 'u',  the  leading  k by k
+				 upper triangular part of the array  A must contain the upper
+				 triangular matrix  and the strictly lower triangular part of
+				 A is not referenced.
+				 Before entry  with  UPLO = 'L' or 'l',  the  leading  k by k
+				 lower triangular part of the array  A must contain the lower
+				 triangular matrix  and the strictly upper triangular part of
+				 A is not referenced.
+				 Note that when  DIAG = 'U' or 'u',  the diagonal elements of
+				 A  are not referenced either,  but are assumed to be  unity.
+				 Unchanged on exit.
+
+		LDA    - INTEGER.
+				 On entry, LDA specifies the first dimension of A as declared
+				 in the calling (sub) program.  When  SIDE = 'L' or 'l'  then
+				 LDA  must be at least  max( 1, m ),  when  SIDE = 'R' or 'r'
+				 then LDA must be at least max( 1, n ).
+				 Unchanged on exit.
+
+		B      - DOUBLE PRECISION array of DIMENSION ( LDB, n ).
+				 Before entry,  the leading  m by n part of the array  B must
+				 contain  the  right-hand  side  matrix  B,  and  on exit  is
+				 overwritten by the solution matrix  X.
+
+		LDB    - INTEGER.
+				 On entry, LDB specifies the first dimension of B as declared
+				 in  the  calling  (sub)  program.   LDB  must  be  at  least
+				 max( 1, m ).
+				 Unchanged on exit.
+
+		Further Details
+		===============
+
+		Level 3 Blas routine.
+
+
+		-- Written on 8-February-1989.
+		   Jack Dongarra, Argonne National Laboratory.
+		   Iain Duff, AERE Harwell.
+		   Jeremy Du Croz, Numerical Algorithms Group Ltd.
+		   Sven Hammarling, Numerical Algorithms Group Ltd.
+
+		=====================================================================
+
+
+		   Test the input parameters.
+	*/
+
+	/* Parameter adjustments */
+	a_dim1 = *lda;
+	a_offset = 1 + a_dim1;
+	a -= a_offset;
+	b_dim1 = *ldb;
+	b_offset = 1 + b_dim1;
+	b -= b_offset;
+
+	/* Function Body */
+	lside = lsame_(side, "L");
+	if (lside) {
+		nrowa = *m;
+	}
+	else {
+		nrowa = *n;
+	}
+	nounit = lsame_(diag, "N");
+	upper = lsame_(uplo, "U");
+
+	info = 0;
+	if (!lside && !lsame_(side, "R")) {
+		info = 1;
+	}
+	else if (!upper && !lsame_(uplo, "L")) {
+		info = 2;
+	}
+	else if (!lsame_(transa, "N") && !lsame_(transa,
+		"T") && !lsame_(transa, "C")) {
+		info = 3;
+	}
+	else if (!lsame_(diag, "U") && !lsame_(diag,
+		"N")) {
+		info = 4;
+	}
+	else if (*m < 0) {
+		info = 5;
+	}
+	else if (*n < 0) {
+		info = 6;
+	}
+	else if (*lda < max(1, nrowa)) {
+		info = 9;
+	}
+	else if (*ldb < max(1, *m)) {
+		info = 11;
+	}
+	if (info != 0) {
+		xerbla_("DTRSM ", &info);
+		return 0;
+	}
+
+	/*     Quick return if possible. */
+
+	if (*m == 0 || *n == 0) {
+		return 0;
+	}
+
+	/*     And when  alpha.eq.zero. */
+
+	if (*alpha == 0.) {
+		i__1 = *n;
+		for (j = 1; j <= i__1; ++j) {
+			i__2 = *m;
+			for (i__ = 1; i__ <= i__2; ++i__) {
+				b[i__ + j * b_dim1] = 0.;
+				/* L10: */
+			}
+			/* L20: */
+		}
+		return 0;
+	}
+
+	/*     Start the operations. */
+
+	if (lside) {
+		if (lsame_(transa, "N")) {
+
+			/*           Form  B := alpha*inv( A )*B. */
+
+			if (upper) {
+				i__1 = *n;
+				for (j = 1; j <= i__1; ++j) {
+					if (*alpha != 1.) {
+						i__2 = *m;
+						for (i__ = 1; i__ <= i__2; ++i__) {
+							b[i__ + j * b_dim1] = *alpha * b[i__ + j * b_dim1]
+								;
+							/* L30: */
+						}
+					}
+					for (k = *m; k >= 1; --k) {
+						if (b[k + j * b_dim1] != 0.) {
+							if (nounit) {
+								b[k + j * b_dim1] /= a[k + k * a_dim1];
+							}
+							i__2 = k - 1;
+							for (i__ = 1; i__ <= i__2; ++i__) {
+								b[i__ + j * b_dim1] -= b[k + j * b_dim1] * a[
+									i__ + k * a_dim1];
+								/* L40: */
+							}
+						}
+						/* L50: */
+					}
+					/* L60: */
+				}
+			}
+			else {
+				i__1 = *n;
+				for (j = 1; j <= i__1; ++j) {
+					if (*alpha != 1.) {
+						i__2 = *m;
+						for (i__ = 1; i__ <= i__2; ++i__) {
+							b[i__ + j * b_dim1] = *alpha * b[i__ + j * b_dim1]
+								;
+							/* L70: */
+						}
+					}
+					i__2 = *m;
+					for (k = 1; k <= i__2; ++k) {
+						if (b[k + j * b_dim1] != 0.) {
+							if (nounit) {
+								b[k + j * b_dim1] /= a[k + k * a_dim1];
+							}
+							i__3 = *m;
+							for (i__ = k + 1; i__ <= i__3; ++i__) {
+								b[i__ + j * b_dim1] -= b[k + j * b_dim1] * a[
+									i__ + k * a_dim1];
+								/* L80: */
+							}
+						}
+						/* L90: */
+					}
+					/* L100: */
+				}
+			}
+		}
+		else {
+
+			/*           Form  B := alpha*inv( A' )*B. */
+
+			if (upper) {
+				i__1 = *n;
+				for (j = 1; j <= i__1; ++j) {
+					i__2 = *m;
+					for (i__ = 1; i__ <= i__2; ++i__) {
+						temp = *alpha * b[i__ + j * b_dim1];
+						i__3 = i__ - 1;
+						for (k = 1; k <= i__3; ++k) {
+							temp -= a[k + i__ * a_dim1] * b[k + j * b_dim1];
+							/* L110: */
+						}
+						if (nounit) {
+							temp /= a[i__ + i__ * a_dim1];
+						}
+						b[i__ + j * b_dim1] = temp;
+						/* L120: */
+					}
+					/* L130: */
+				}
+			}
+			else {
+				i__1 = *n;
+				for (j = 1; j <= i__1; ++j) {
+					for (i__ = *m; i__ >= 1; --i__) {
+						temp = *alpha * b[i__ + j * b_dim1];
+						i__2 = *m;
+						for (k = i__ + 1; k <= i__2; ++k) {
+							temp -= a[k + i__ * a_dim1] * b[k + j * b_dim1];
+							/* L140: */
+						}
+						if (nounit) {
+							temp /= a[i__ + i__ * a_dim1];
+						}
+						b[i__ + j * b_dim1] = temp;
+						/* L150: */
+					}
+					/* L160: */
+				}
+			}
+		}
+	}
+	else {
+		if (lsame_(transa, "N")) {
+
+			/*           Form  B := alpha*B*inv( A ). */
+
+			if (upper) {
+				i__1 = *n;
+				for (j = 1; j <= i__1; ++j) {
+					if (*alpha != 1.) {
+						i__2 = *m;
+						for (i__ = 1; i__ <= i__2; ++i__) {
+							b[i__ + j * b_dim1] = *alpha * b[i__ + j * b_dim1]
+								;
+							/* L170: */
+						}
+					}
+					i__2 = j - 1;
+					for (k = 1; k <= i__2; ++k) {
+						if (a[k + j * a_dim1] != 0.) {
+							i__3 = *m;
+							for (i__ = 1; i__ <= i__3; ++i__) {
+								b[i__ + j * b_dim1] -= a[k + j * a_dim1] * b[
+									i__ + k * b_dim1];
+								/* L180: */
+							}
+						}
+						/* L190: */
+					}
+					if (nounit) {
+						temp = 1. / a[j + j * a_dim1];
+						i__2 = *m;
+						for (i__ = 1; i__ <= i__2; ++i__) {
+							b[i__ + j * b_dim1] = temp * b[i__ + j * b_dim1];
+							/* L200: */
+						}
+					}
+					/* L210: */
+				}
+			}
+			else {
+				for (j = *n; j >= 1; --j) {
+					if (*alpha != 1.) {
+						i__1 = *m;
+						for (i__ = 1; i__ <= i__1; ++i__) {
+							b[i__ + j * b_dim1] = *alpha * b[i__ + j * b_dim1]
+								;
+							/* L220: */
+						}
+					}
+					i__1 = *n;
+					for (k = j + 1; k <= i__1; ++k) {
+						if (a[k + j * a_dim1] != 0.) {
+							i__2 = *m;
+							for (i__ = 1; i__ <= i__2; ++i__) {
+								b[i__ + j * b_dim1] -= a[k + j * a_dim1] * b[
+									i__ + k * b_dim1];
+								/* L230: */
+							}
+						}
+						/* L240: */
+					}
+					if (nounit) {
+						temp = 1. / a[j + j * a_dim1];
+						i__1 = *m;
+						for (i__ = 1; i__ <= i__1; ++i__) {
+							b[i__ + j * b_dim1] = temp * b[i__ + j * b_dim1];
+							/* L250: */
+						}
+					}
+					/* L260: */
+				}
+			}
+		}
+		else {
+
+			/*           Form  B := alpha*B*inv( A' ). */
+
+			if (upper) {
+				for (k = *n; k >= 1; --k) {
+					if (nounit) {
+						temp = 1. / a[k + k * a_dim1];
+						i__1 = *m;
+						for (i__ = 1; i__ <= i__1; ++i__) {
+							b[i__ + k * b_dim1] = temp * b[i__ + k * b_dim1];
+							/* L270: */
+						}
+					}
+					i__1 = k - 1;
+					for (j = 1; j <= i__1; ++j) {
+						if (a[j + k * a_dim1] != 0.) {
+							temp = a[j + k * a_dim1];
+							i__2 = *m;
+							for (i__ = 1; i__ <= i__2; ++i__) {
+								b[i__ + j * b_dim1] -= temp * b[i__ + k *
+									b_dim1];
+								/* L280: */
+							}
+						}
+						/* L290: */
+					}
+					if (*alpha != 1.) {
+						i__1 = *m;
+						for (i__ = 1; i__ <= i__1; ++i__) {
+							b[i__ + k * b_dim1] = *alpha * b[i__ + k * b_dim1]
+								;
+							/* L300: */
+						}
+					}
+					/* L310: */
+				}
+			}
+			else {
+				i__1 = *n;
+				for (k = 1; k <= i__1; ++k) {
+					if (nounit) {
+						temp = 1. / a[k + k * a_dim1];
+						i__2 = *m;
+						for (i__ = 1; i__ <= i__2; ++i__) {
+							b[i__ + k * b_dim1] = temp * b[i__ + k * b_dim1];
+							/* L320: */
+						}
+					}
+					i__2 = *n;
+					for (j = k + 1; j <= i__2; ++j) {
+						if (a[j + k * a_dim1] != 0.) {
+							temp = a[j + k * a_dim1];
+							i__3 = *m;
+							for (i__ = 1; i__ <= i__3; ++i__) {
+								b[i__ + j * b_dim1] -= temp * b[i__ + k *
+									b_dim1];
+								/* L330: */
+							}
+						}
+						/* L340: */
+					}
+					if (*alpha != 1.) {
+						i__2 = *m;
+						for (i__ = 1; i__ <= i__2; ++i__) {
+							b[i__ + k * b_dim1] = *alpha * b[i__ + k * b_dim1]
+								;
+							/* L350: */
+						}
+					}
+					/* L360: */
+				}
+			}
+		}
+	}
+
+	return 0;
+
+	/*     End of DTRSM . */
+
+} /* qtrsm_ */

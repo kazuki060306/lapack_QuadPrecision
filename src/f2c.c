@@ -181,6 +181,16 @@ x = (*a >= 0 ? *a : - *a);
 return( *b >= 0 ? x : -x);
 }
 
+#ifdef KR_headers
+double q_sign(a, b) quaddoublereal* a, * b;
+#else
+double q_sign(quaddoublereal* a, quaddoublereal* b)
+#endif
+{
+	double x;
+	x = (*a >= 0 ? *a : -*a);
+	return(*b >= 0 ? x : -x);
+}
 
 #ifdef KR_headers
 double floor();

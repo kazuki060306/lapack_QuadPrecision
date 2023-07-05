@@ -27,6 +27,8 @@ typedef CBLAS_INT logical;
 typedef short int shortlogical;
 typedef char logical1;
 typedef char integer1;
+typedef double quaddoublereal;
+typedef struct { quaddoublereal r, i; } quaddoublecomplex;
 
 #define TRUE_ (1)
 #define FALSE_ (0)
